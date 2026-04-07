@@ -9,20 +9,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const elNewsContainer = document.getElementById('news-container');
     const btnRefresh = document.getElementById('btn-refresh');
     const elAiSummary = document.getElementById('ai-summary-text');
-    const btnToggleAi = document.getElementById('toggle-ai-btn');
-
-    // Toggle da IA
-    if (btnToggleAi && elAiSummary) {
-        btnToggleAi.addEventListener('click', () => {
-            if (elAiSummary.style.display === 'none') {
-                elAiSummary.style.display = 'block';
-                btnToggleAi.innerHTML = '<i class="ph ph-caret-up"></i> Ocultar Panorama';
-            } else {
-                elAiSummary.style.display = 'none';
-                btnToggleAi.innerHTML = '<i class="ph ph-caret-down"></i> Mostrar Panorama';
-            }
-        });
-    }
 
     // Função de Animação de Contagem
     function animateValue(obj, start, end, duration) {
@@ -145,11 +131,30 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Interatividade da Sidebar mockada
     const menuItems = document.querySelectorAll('.menu-item');
-    menuItems.forEach(item => {
+    const sections = {
+        0: 'section-overview',
+        1: 'section-ai',
+        2: 'section-feed',
+        3: 'section-analysis',
+        4: 'section-alerts'
+    };
+
+    menuItems.forEach((item, index) => {
         item.addEventListener('click', (e) => {
             e.preventDefault(); // Impede do botão subir a tela pro topo #
+            
+            // Controle visual do Menu
             menuItems.forEach(m => m.classList.remove('active'));
             item.classList.add('active');
+            
+            // Controle visual das Abas
+            Object.values(sections).forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.style.display = 'none';
+            });
+            
+            const targetEl = document.getElementById(sections[index]);
+            if (targetEl) targetEl.style.display = 'block';
         });
     });
 

@@ -29,6 +29,8 @@
             
             <nav class="main-menu">
                 <a href="#" class="menu-item active"><i class="ph ph-squares-four"></i> Visão Geral</a>
+                <!-- Novo botão para Panorama da Inteligência Artificial -->
+                <a href="#" class="menu-item"><i class="ph ph-sparkle"></i> Panorama IA</a>
                 <a href="#" class="menu-item"><i class="ph ph-newspaper"></i> Feed de Notícias</a>
                 <a href="#" class="menu-item"><i class="ph ph-chart-line-up"></i> Análise e Tendências</a>
                 <a href="#" class="menu-item"><i class="ph ph-warning-circle"></i> Alertas de Crise</a>
@@ -56,7 +58,9 @@
                 </div>
             </header>
 
-            <div class="dashboard-grid">
+            <!-- Seções do Painel (Tabs) -->
+            <div id="section-overview" class="app-section">
+                <div class="dashboard-grid">
                 <!-- Seção Cards de Resumo -->
                 <section class="overview-cards">
                     <div class="glass-card stat-card pulse-element">
@@ -89,19 +93,7 @@
 
                 <!-- Área Central (Gráfico e Lista de notícias) -->
                 <div class="content-row">
-                    <!-- Resumo IA -->
-                    <section class="ai-summary-section glass-card" style="margin-bottom: 24px; border-left: 4px solid var(--primary-green);">
-                        <div class="section-header" style="margin-bottom: 0; display: flex; align-items: center; justify-content: space-between;">
-                            <div style="display: flex; align-items: center; gap: 8px;">
-                                <i class="ph-fill ph-sparkle" style="color: var(--primary-green); font-size: 1.5rem;"></i>
-                                <h2 style="margin: 0; font-size: 1.1rem; color: var(--text-main);">Panorama Geral por IA</h2>
-                            </div>
-                            <button id="toggle-ai-btn" class="btn-refresh" style="padding: 6px 14px; font-size: 0.85rem; display: flex; align-items: center; gap: 6px;">
-                                <i class="ph ph-caret-down"></i> Mostrar Panorama
-                            </button>
-                        </div>
-                        <p id="ai-summary-text" style="color: var(--text-muted); line-height: 1.6; font-size: 0.95rem; display: none; margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--border-color);">Carregando análise inteligente do cenário atual...</p>
-                    </section>
+                    <!-- Resumo IA movido para aba própria no menu -->
 
                     <!-- Notícias Recentes -->
                     <section class="news-section glass-card">
@@ -120,7 +112,47 @@
                         </div>
                     </section>
                 </div>
+            </div> <!-- Fim de dashboard-grid -->
+            </div> <!-- Fim de section-overview -->
+
+            <!-- Aba: Panorama de IA -->
+            <div id="section-ai" class="app-section" style="display: none;">
+                <div class="glass-card" style="padding: 60px 40px; text-align: left; border-left: 4px solid var(--primary-green);">
+                    <div style="display: flex; align-items: center; gap: 15px; margin-bottom: 25px;">
+                        <i class="ph-fill ph-sparkle" style="color: var(--primary-green); font-size: 2.5rem;"></i>
+                        <h2 style="font-size: 1.8rem; margin: 0;">Panorama Executivo por IA</h2>
+                    </div>
+                    <p id="ai-summary-text" style="color: var(--text-main); line-height: 1.8; font-size: 1.1rem; max-width: 800px;">Carregando análise inteligente do cenário atual através do monitoramento integrado...</p>
+                </div>
             </div>
+
+            <!-- Aba: Feed de Notícias -->
+            <div id="section-feed" class="app-section" style="display: none;">
+                <div class="glass-card" style="padding: 60px 40px; text-align: center;">
+                    <i class="ph ph-newspaper" style="font-size: 3.5rem; color: var(--primary-green); margin-bottom: 20px;"></i>
+                    <h2 style="font-size: 1.5rem; margin-bottom: 15px;">Leitor de Feed Expandido</h2>
+                    <p style="color: var(--text-muted); line-height: 1.6; max-width: 600px; margin: 0 auto;">O módulo de exploração avançada e histórico de publicações de meses anteriores do Projeto Natureza está sendo conectado ao banco de dados interno.<br><br>Confira a amostragem das publicações rodando nas últimas 24h na aba <strong>Visão Geral</strong>.</p>
+                </div>
+            </div>
+
+            <!-- Aba: Análise -->
+            <div id="section-analysis" class="app-section" style="display: none;">
+                <div class="glass-card" style="padding: 60px 40px; text-align: center;">
+                    <i class="ph ph-chart-line-up" style="font-size: 3.5rem; color: var(--accent-orange); margin-bottom: 20px;"></i>
+                    <h2 style="font-size: 1.5rem; margin-bottom: 15px;">Análise Preditiva e Tendências</h2>
+                    <p style="color: var(--text-muted); line-height: 1.6; max-width: 600px; margin: 0 auto;">O gráfico avançado de sentimento detalhado por dia da semana está sendo treinado pelo modelo.<br><br>Volte em breve para visualizar as curvas de tendências de crise da CMPC em formato preditivo interagindo com o cruzamento das Redes Sociais locais.</p>
+                </div>
+            </div>
+
+            <!-- Aba: Alertas -->
+            <div id="section-alerts" class="app-section" style="display: none;">
+                <div class="glass-card" style="padding: 60px 40px; text-align: center;">
+                    <i class="ph ph-shield-check" style="font-size: 3.5rem; color: var(--primary-green); margin-bottom: 20px;"></i>
+                    <h2 style="font-size: 1.5rem; margin-bottom: 15px;">Nenhum Alerta Crítico</h2>
+                    <p style="color: var(--text-muted); line-height: 1.6; max-width: 600px; margin: 0 auto;">O Sentimento do projeto hoje indica uma base sustentável (predominância Positiva/Neutra).<br><br>Nenhuma estratégia de contenção de crise orgânica nas mídias tradicionais é necessária nesta manhã. Acompanhe os relatórios na Visão Geral.</p>
+                </div>
+            </div>
+
         </main>
     </div>
 
