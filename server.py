@@ -12,7 +12,9 @@ try:
 except ImportError:
     HAS_GEMINI = False
 
-PORT = 8000
+import os
+
+PORT = int(os.environ.get("PORT", 8000))
 
 class APIHandler(http.server.SimpleHTTPRequestHandler):
     def end_headers(self):

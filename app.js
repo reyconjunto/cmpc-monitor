@@ -1,5 +1,5 @@
 document.addEventListener('DOMContentLoaded', () => {
-    const API_URL = 'http://localhost:8000/api/news';
+    const API_URL = '/api/news';
 
     // Elementos da DOM
     const elTotalMentions = document.getElementById('total-mentions');
