@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Dashboard de Monitoramento de Mídia - CMPC & Projeto Natureza">
+    <title>CMPC Monitor Tracker | Projeto Natureza</title>
+    
+    <!-- Google Fonts: Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Estilos globais -->
+    <link rel="stylesheet" href="styles.css">
+    
+    <!-- Phosphor Icons (Ícones modernos) -->
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar lateral -->
+        <aside class="sidebar">
+            <div class="logo-area">
+                <i class="ph ph-target"></i>
+                <h1>Monitor<span>CMPC</span></h1>
+            </div>
+            
+            <nav class="main-menu">
+                <a href="#" class="menu-item active"><i class="ph ph-squares-four"></i> Visão Geral</a>
+                <a href="#" class="menu-item"><i class="ph ph-newspaper"></i> Feed de Notícias</a>
+                <a href="#" class="menu-item"><i class="ph ph-chart-line-up"></i> Análise e Tendências</a>
+                <a href="#" class="menu-item"><i class="ph ph-warning-circle"></i> Alertas de Crise</a>
+            </nav>
+            
+            <div class="project-tag">
+                <p>Tracking Ativo</p>
+                <span>Projeto Natureza • RS</span>
+            </div>
+        </aside>
+
+        <!-- Conteúdo Principal -->
+        <main class="main-content">
+            <header class="topbar">
+                <div class="search-info">
+                    <i class="ph ph-magnifying-glass"></i>
+                    <p>Monitorando: "Projeto Natureza", "Barra do Ribeiro", "CMPC"</p>
+                </div>
+                <div class="user-profile" style="display: flex; align-items: center; gap: 12px;">
+                    <div class="status-indicator"></div>
+                    <span>Status do Tracker: Online</span>
+                    <span class="ai-badge" style="background: rgba(0, 200, 83, 0.1); padding: 4px 10px; border-radius: 20px; font-size: 0.8rem; color: var(--primary-green); display: flex; align-items: center; gap: 4px;">
+                        <i class="ph-fill ph-sparkle"></i> Gemini AI
+                    </span>
+                </div>
+            </header>
+
+            <div class="dashboard-grid">
+                <!-- Seção Cards de Resumo -->
+                <section class="overview-cards">
+                    <div class="glass-card stat-card pulse-element">
+                        <div class="stat-icon"><i class="ph ph-newspaper-clipping"></i></div>
+                        <div class="stat-info">
+                            <h3>Total de Menções</h3>
+                            <h2 id="total-mentions">...</h2>
+                            <span class="trend positive" id="trend-label">Carregando...</span>
+                        </div>
+                    </div>
+                    
+                    <div class="glass-card stat-card highlight">
+                        <div class="stat-icon"><i class="ph ph-quotes"></i></div>
+                        <div class="stat-info">
+                            <h3>Fontes Identificadas</h3>
+                            <h2 id="sources-count">...</h2>
+                            <span class="trend neutral">Portais & Blogs</span>
+                        </div>
+                    </div>
+
+                    <div class="glass-card stat-card">
+                        <div class="stat-icon"><i class="ph ph-smiley-nervous"></i></div>
+                        <div class="stat-info">
+                            <h3>Sentimento Predominante</h3>
+                            <h2 id="sentiment-dominance" class="glow-text">Calculando</h2>
+                            <span class="trend">Baseado no tom das manchetes</span>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Área Central (Gráfico e Lista de notícias) -->
+                <div class="content-row">
+                    <!-- Resumo IA -->
+                    <section class="ai-summary-section glass-card" style="margin-bottom: 24px; border-left: 4px solid var(--primary-green);">
+                        <div class="section-header" style="margin-bottom: 0; display: flex; align-items: center; justify-content: space-between;">
+                            <div style="display: flex; align-items: center; gap: 8px;">
+                                <i class="ph-fill ph-sparkle" style="color: var(--primary-green); font-size: 1.5rem;"></i>
+                                <h2 style="margin: 0; font-size: 1.1rem; color: var(--text-main);">Panorama Geral por IA</h2>
+                            </div>
+                            <button id="toggle-ai-btn" class="btn-refresh" style="padding: 6px 14px; font-size: 0.85rem; display: flex; align-items: center; gap: 6px;">
+                                <i class="ph ph-caret-down"></i> Mostrar Panorama
+                            </button>
+                        </div>
+                        <p id="ai-summary-text" style="color: var(--text-muted); line-height: 1.6; font-size: 0.95rem; display: none; margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--border-color);">Carregando análise inteligente do cenário atual...</p>
+                    </section>
+
+                    <!-- Notícias Recentes -->
+                    <section class="news-section glass-card">
+                        <div class="section-header">
+                            <h2>Radar de Notícias (Últimas 24h)</h2>
+                            <button class="btn-refresh" id="btn-refresh">
+                                <i class="ph ph-arrows-clockwise"></i> Atualizar
+                            </button>
+                        </div>
+                        
+                        <div class="news-list" id="news-container">
+                            <div class="loading-state">
+                                <i class="ph ph-spinner-gap spin"></i>
+                                <p>Buscando os dados mais recentes...</p>
+                            </div>
+                        </div>
+                    </section>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Script da App -->
+    <script src="app.js"></script>
+</body>
+</html>
