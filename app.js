@@ -161,6 +161,6 @@ document.addEventListener('DOMContentLoaded', () => {
     // Iniciar
     fetchDashboardData();
     
-    // Auto Update a cada 2 minutos
-    setInterval(fetchDashboardData, 120000);
+    // Auto Update a cada 30 minutos
+    setInterval(fetchDashboardData, 1800000);
 });
