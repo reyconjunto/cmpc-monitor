@@ -29,6 +29,8 @@
             
             <nav class="main-menu">
                 <a href="#" class="menu-item active"><i class="ph ph-squares-four"></i> Visão Geral</a>
+                <!-- Nova Aba Termômetro da Comunidade -->
+                <a href="#" class="menu-item"><i class="ph ph-thermometer-hot"></i> Termômetro</a>
                 <!-- Novo botão para Panorama da Inteligência Artificial -->
                 <a href="#" class="menu-item"><i class="ph ph-sparkle"></i> Panorama IA</a>
                 <a href="#" class="menu-item"><i class="ph ph-newspaper"></i> Feed de Notícias</a>
@@ -150,6 +152,83 @@
                     <i class="ph ph-shield-check" style="font-size: 3.5rem; color: var(--primary-green); margin-bottom: 20px;"></i>
                     <h2 style="font-size: 1.5rem; margin-bottom: 15px;">Nenhum Alerta Crítico</h2>
                     <p style="color: var(--text-muted); line-height: 1.6; max-width: 600px; margin: 0 auto;">O Sentimento do projeto hoje indica uma base sustentável (predominância Positiva/Neutra).<br><br>Nenhuma estratégia de contenção de crise orgânica nas mídias tradicionais é necessária nesta manhã. Acompanhe os relatórios na Visão Geral.</p>
+                </div>
+            </div>
+
+            <!-- Aba: Termômetro da Comunidade -->
+            <div id="section-thermometer" class="app-section" style="display: none;">
+                <div class="glass-card" style="padding: 40px;">
+                    <div style="display: flex; align-items: center; gap: 15px; margin-bottom: 25px;">
+                        <i class="ph-fill ph-thermometer-hot" style="color: var(--accent-orange); font-size: 2.5rem;"></i>
+                        <h2 style="font-size: 1.8rem; margin: 0;">Termômetro da Comunidade</h2>
+                    </div>
+                    <p style="color: var(--text-muted); margin-bottom: 30px;">Monitoramento simulado de comentários usando IA em perfis estratégicos da região.</p>
+                    
+                    <div class="thermometer-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 30px;">
+                        <!-- Coluna 1: Info do Post -->
+                        <div class="target-info-card" style="background: rgba(255,255,255,0.03); padding: 25px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.05); display: flex; flex-direction: column; justify-content: center;">
+                            <h3 style="font-size: 0.9rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 10px;">Alvo Estratégico Monitorado</h3>
+                            <h4 id="thermo-target" style="font-size: 1.2rem; color: var(--text-main); margin-bottom: 5px;">Carregando...</h4>
+                            <p id="thermo-post" style="color: var(--text-muted); margin-bottom: 30px; font-style: italic;">"..."</p>
+                            
+                            <div style="display: flex; align-items: center; gap: 10px; background: rgba(0, 0, 0, 0.2); padding: 15px; border-radius: 8px;">
+                                <i class="ph ph-chats" style="font-size: 2rem; color: var(--primary-green);"></i>
+                                <span id="thermo-comments-count" style="font-size: 2.2rem; font-weight: 700;">0</span>
+                                <span style="color: var(--text-muted); line-height: 1.2;">Comentários extraídos<br>e analisados pelo Gemini</span>
+                            </div>
+                        </div>
+                        
+                        <!-- Coluna 2: Progresso e Tópicos -->
+                        <div class="sentiment-bars-card">
+                            <h3 style="font-size: 1.1rem; margin-bottom: 20px;">Divisão Categórica de Sentimento</h3>
+                            
+                            <div class="bar-group" style="margin-bottom: 15px;">
+                                <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+                                    <span style="color: var(--primary-green); font-weight: 500;">Aprovação (Positivos)</span>
+                                    <span id="thermo-pos-val" style="font-weight:bold;">0%</span>
+                                </div>
+                                <div style="width: 100%; height: 8px; background: rgba(255,255,255,0.1); border-radius: 10px; overflow: hidden;">
+                                    <div id="thermo-pos-bar" style="width: 0%; height: 100%; background: var(--primary-green); transition: width 1.5s ease-out;"></div>
+                                </div>
+                            </div>
+                            
+                            <div class="bar-group" style="margin-bottom: 15px;">
+                                <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+                                    <span style="color: #999; font-weight: 500;">Assuntos Gerais (Neutros)</span>
+                                    <span id="thermo-neu-val" style="font-weight:bold;">0%</span>
+                                </div>
+                                <div style="width: 100%; height: 8px; background: rgba(255,255,255,0.1); border-radius: 10px; overflow: hidden;">
+                                    <div id="thermo-neu-bar" style="width: 0%; height: 100%; background: #999; transition: width 1.5s ease-out;"></div>
+                                </div>
+                            </div>
+                            
+                            <div class="bar-group" style="margin-bottom: 25px;">
+                                <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+                                    <span style="color: #f44336; font-weight: 500;">Atenção Crítica (Negativos)</span>
+                                    <span id="thermo-neg-val" style="font-weight:bold;">0%</span>
+                                </div>
+                                <div style="width: 100%; height: 8px; background: rgba(255,255,255,0.1); border-radius: 10px; overflow: hidden;">
+                                    <div id="thermo-neg-bar" style="width: 0%; height: 100%; background: #f44336; transition: width 1.5s ease-out;"></div>
+                                </div>
+                            </div>
+                            
+                            <!-- Caixas de Tópicos -->
+                            <div style="display: flex; gap: 15px;">
+                                <div style="flex: 1; background: rgba(244, 67, 54, 0.05); border: 1px solid rgba(244, 67, 54, 0.2); border-left: 3px solid #f44336; padding: 15px; border-radius: 4px;">
+                                    <strong style="color: #f44336; display: block; margin-bottom: 8px; font-size: 0.9rem; text-transform: uppercase;">⚠️ Emissor de Foco</strong>
+                                    <ul id="thermo-crises" style="color: var(--text-main); margin: 0; padding-left: 20px; font-size: 0.95rem;">
+                                        <li>Calculando...</li>
+                                    </ul>
+                                </div>
+                                <div style="flex: 1; background: rgba(0, 200, 83, 0.05); border: 1px solid rgba(0, 200, 83, 0.2); border-left: 3px solid var(--primary-green); padding: 15px; border-radius: 4px;">
+                                    <strong style="color: var(--primary-green); display: block; margin-bottom: 8px; font-size: 0.9rem; text-transform: uppercase;">🌱 Ganhos de Imagem</strong>
+                                    <ul id="thermo-positives" style="color: var(--text-main); margin: 0; padding-left: 20px; font-size: 0.95rem;">
+                                        <li>Calculando...</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
 

@@ -97,6 +97,52 @@ document.addEventListener('DOMContentLoaded', () => {
             else if(dominant.includes("Negativa")) elSentiment.style.color = "#f44336";
             else elSentiment.style.color = "var(--text-main)";
 
+            // Preencher o Termômetro da Comunidade
+            if (data.community_thermometer) {
+                const thermo = data.community_thermometer;
+                const elTarget = document.getElementById('thermo-target');
+                const elPost = document.getElementById('thermo-post');
+                const elComments = document.getElementById('thermo-comments-count');
+                
+                if (elTarget) elTarget.innerText = thermo.target_profile;
+                if (elPost) elPost.innerText = `"${thermo.post_title}"`;
+                
+                if (elComments) {
+                    animateValue(elComments, 0, thermo.comments_analyzed, 1500);
+                }
+                
+                // Animar Barras
+                setTimeout(() => {
+                    const posBar = document.getElementById('thermo-pos-bar');
+                    const neuBar = document.getElementById('thermo-neu-bar');
+                    const negBar = document.getElementById('thermo-neg-bar');
+                    
+                    if (posBar) {
+                        posBar.style.width = thermo.sentiment_score.positivos + '%';
+                        document.getElementById('thermo-pos-val').innerText = thermo.sentiment_score.positivos + '%';
+                    }
+                    if (neuBar) {
+                        neuBar.style.width = thermo.sentiment_score.neutros + '%';
+                        document.getElementById('thermo-neu-val').innerText = thermo.sentiment_score.neutros + '%';
+                    }
+                    if (negBar) {
+                        negBar.style.width = thermo.sentiment_score.negativos + '%';
+                        document.getElementById('thermo-neg-val').innerText = thermo.sentiment_score.negativos + '%';
+                    }
+                }, 100);
+
+                // Preencher Tópicos
+                const crisesList = document.getElementById('thermo-crises');
+                const posList = document.getElementById('thermo-positives');
+                
+                if (crisesList && thermo.critical_topics) {
+                    crisesList.innerHTML = thermo.critical_topics.map(t => `<li>${t}</li>`).join('');
+                }
+                if (posList && thermo.positive_topics) {
+                    posList.innerHTML = thermo.positive_topics.map(t => `<li>${t}</li>`).join('');
+                }
+            }
+
             // Renderizar Lista de Notícias
             if(data.latest_news && data.latest_news.length > 0) {
                 elNewsContainer.innerHTML = data.latest_news.map((news, index) => createNewsCard(news, index)).join('');
@@ -133,10 +179,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const menuItems = document.querySelectorAll('.menu-item');
     const sections = {
         0: 'section-overview',
-        1: 'section-ai',
-        2: 'section-feed',
-        3: 'section-analysis',
-        4: 'section-alerts'
+        1: 'section-thermometer',
+        2: 'section-ai',
+        3: 'section-feed',
+        4: 'section-analysis',
+        5: 'section-alerts'
     };
 
     menuItems.forEach((item, index) => {

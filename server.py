@@ -59,31 +59,19 @@ class APIHandler(http.server.SimpleHTTPRequestHandler):
                             "sentiment": "neutra"
                         })
                 
-                # Mock Integration das Redes Sociais
-                import email.utils
-                from datetime import datetime, timezone
-                current_time = email.utils.format_datetime(datetime.now(timezone.utc))
-                items.insert(0, {
-                    "title": "A @cmpc tá vindo com tudo!! A fábrica do Projeto Natureza na Barra do Ribeiro vai impulsionar a economia local e trazer novos empregos. Acompanhando de perto 🙌🏻🍃 #ProjetoNatureza #CMPC",
-                    "link": "https://www.instagram.com/explore/tags/projetonatureza/",
-                    "pubDate": current_time,
-                    "source": "Instagram (@comunidade_rs)",
-                    "sentiment": "positiva"
-                })
-                items.insert(1, {
-                    "title": "Muita propaganda do novo polo de celulose da CMPC, mas precisamos cobrar transparência sobre o impacto na área! 🛑💧 #MeioAmbienteRS #BarraDoRibeiro",
-                    "link": "https://twitter.com/search?q=CMPC%20Barra%20do%20Ribeiro",
-                    "pubDate": current_time,
-                    "source": "X (@ambientalistars)",
-                    "sentiment": "negativa"
-                })
-                items.insert(2, {
-                    "title": "Participei da audiência pública em Porto Alegre hoje. A expansão da fábrica vai trazer muito crescimento, mas a prefeitura de Barra do Ribeiro precisa preparar a infraestrutura local para aguentar o fluxo do Projeto Natureza da CMPC. Seguimos acompanhando os desdobramentos nas estradas também.",
-                    "link": "https://facebook.com/search/posts?q=Projeto%20Natureza%20CMPC",
-                    "pubDate": current_time,
-                    "source": "Facebook (Grupo Barra do Ribeiro Debates)",
-                    "sentiment": "neutra"
-                })
+                # Simulação do Termômetro da Comunidade (Monitoramento de Posts Direcionado)
+                community_thermometer = {
+                    "target_profile": "Instagram - Prefeitura de Barra do Ribeiro",
+                    "post_title": "Aviso sobre o avanço das obras do Projeto Natureza",
+                    "comments_analyzed": 156,
+                    "sentiment_score": {
+                        "positivos": 32,  # 32%
+                        "neutros": 18,    # 18%
+                        "negativos": 50   # 50%
+                    },
+                    "critical_topics": ["Poeira e barro nas ruas", "Tráfego intenso de caminhões"],
+                    "positive_topics": ["Abertura de vagas", "Crescimento do comércio local"]
+                }
                 
                 ai_summary = "A maioria das menções recentes destaca os investimentos bilionários e a geração de empregos com o 'Projeto Natureza' em Barra do Ribeiro. No entanto, o cruzamento de menções no X e Instagram revela cobranças pontuais sobre transparência ambiental, o que requer monitoramento ativo."
                 api_key = os.environ.get("GEMINI_API_KEY")
@@ -132,7 +120,8 @@ class APIHandler(http.server.SimpleHTTPRequestHandler):
                     "trend_label": "+12% esta semana",
                     "sources_count": len(set([i['source'] for i in items])) + 8,
                     "latest_news": items,
-                    "ai_summary": ai_summary
+                    "ai_summary": ai_summary,
+                    "community_thermometer": community_thermometer
                 }
                 
                 self.wfile.write(json.dumps(stats).encode('utf-8'))
