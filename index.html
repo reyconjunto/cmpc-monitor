@@ -17,6 +17,8 @@
     <!-- Phosphor Icons (Ícones modernos) -->
     <script src="https://unpkg.com/@phosphor-icons/web"></script>
     
+    <!-- Chart.js para o motor de Análise Analítica -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
     <div class="app-container">
@@ -139,10 +141,28 @@
 
             <!-- Aba: Análise -->
             <div id="section-analysis" class="app-section" style="display: none;">
-                <div class="glass-card" style="padding: 60px 40px; text-align: center;">
-                    <i class="ph ph-chart-line-up" style="font-size: 3.5rem; color: var(--accent-orange); margin-bottom: 20px;"></i>
-                    <h2 style="font-size: 1.5rem; margin-bottom: 15px;">Análise Preditiva e Tendências</h2>
-                    <p style="color: var(--text-muted); line-height: 1.6; max-width: 600px; margin: 0 auto;">O gráfico avançado de sentimento detalhado por dia da semana está sendo treinado pelo modelo.<br><br>Volte em breve para visualizar as curvas de tendências de crise da CMPC em formato preditivo interagindo com o cruzamento das Redes Sociais locais.</p>
+                <div class="glass-card" style="padding: 40px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; flex-wrap: wrap; gap: 20px;">
+                        <div>
+                            <div style="display: flex; align-items: center; gap: 15px;">
+                                <i class="ph-fill ph-chart-line-up" style="color: var(--primary-green); font-size: 2.5rem;"></i>
+                                <h2 style="font-size: 1.8rem; margin: 0;">Análise Preditiva e Histórico</h2>
+                            </div>
+                            <p style="color: var(--text-muted); margin-top: 10px;">Banco de Dados Acumulado Oficial. Última varredura lida: <span id="db-last-run">Carregando...</span></p>
+                        </div>
+                        <button id="btn-force-sync" style="background: var(--accent-orange); color: white; border: none; padding: 12px 25px; border-radius: 8px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 10px; font-size: 1rem; transition: transform 0.2s;">
+                            <i class="ph ph-arrows-clockwise"></i> Executar Sincronização em Lote
+                        </button>
+                    </div>
+
+                    <!-- Gráfico Datalake -->
+                    <div style="width: 100%; height: 400px; background: rgba(0,0,0,0.3); border-radius: 12px; padding: 20px; border: 1px solid rgba(255,255,255,0.05); position: relative;">
+                        <div id="chart-loader" style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; display: flex; align-items: center; justify-content: center; z-index: 10; background: rgba(0,0,0,0.8); border-radius: 12px; display: none; flex-direction: column; gap: 15px;">
+                            <i class="ph ph-spinner spin" style="font-size: 3rem; color: var(--primary-green);"></i>
+                            <span style="color: white; font-weight: 500;">Varrendo Alvos Globais... Pode levar até 2 min!</span>
+                        </div>
+                        <canvas id="trendsChart"></canvas>
+                    </div>
                 </div>
             </div>
 

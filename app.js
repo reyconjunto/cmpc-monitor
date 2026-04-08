@@ -307,9 +307,125 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    // --- Lógica da Aba "Análise Preditiva" (Trends & Datalake) ---
+    let trendsChartInstance = null;
+
+    async function loadTrends() {
+        try {
+            const res = await fetch('/api/trends');
+            const data = await res.json();
+            
+            const btnLastRun = document.getElementById('db-last-run');
+            if(data.last_run) {
+                btnLastRun.innerText = new Date(data.last_run).toLocaleString('pt-BR');
+            } else {
+                btnLastRun.innerText = "Sincronização inicial ainda não executada.";
+            }
+
+            if(data.historical_trends && data.historical_trends.length > 0) {
+                renderChart(data.historical_trends);
+            }
+        } catch (e) {
+            console.error("Erro ao ler Datalake:", e);
+        }
+    }
+
+    function renderChart(historical_trends) {
+        const ctx = document.getElementById('trendsChart').getContext('2d');
+        const labels = historical_trends.map(t => {
+            const dDate = new Date(t.date);
+            return dDate.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }) + (isNaN(dDate)? t.date : ''); 
+        });
+        const posData = historical_trends.map(t => t.sentiment.positivos);
+        const neuData = historical_trends.map(t => t.sentiment.neutros);
+        const negData = historical_trends.map(t => t.sentiment.negativos);
+
+        if(trendsChartInstance) {
+            trendsChartInstance.destroy();
+        }
+
+        trendsChartInstance = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [
+                    {
+                        label: 'Positivo',
+                        data: posData,
+                        borderColor: '#4caf50',
+                        backgroundColor: 'rgba(76, 175, 80, 0.1)',
+                        tension: 0.4,
+                        fill: true,
+                    },
+                    {
+                        label: 'Neutro',
+                        data: neuData,
+                        borderColor: '#9e9e9e',
+                        backgroundColor: 'transparent',
+                        borderDash: [5, 5],
+                        tension: 0.4,
+                    },
+                    {
+                        label: 'Negativo/Crítico',
+                        data: negData,
+                        borderColor: '#f44336',
+                        backgroundColor: 'transparent',
+                        tension: 0.4,
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                color: 'white',
+                scales: {
+                    x: { ticks: { color: 'rgba(255,255,255,0.7)' }, grid: { color: 'rgba(255,255,255,0.1)' } },
+                    y: { beginAtZero: true, max: 100, ticks: { color: 'rgba(255,255,255,0.7)', callback: v => v + '%' }, grid: { color: 'rgba(255,255,255,0.1)' } }
+                },
+                plugins: {
+                    legend: { labels: { color: 'white' } }
+                }
+            }
+        });
+    }
+
+    const btnForceSync = document.getElementById('btn-force-sync');
+    if(btnForceSync) {
+        btnForceSync.addEventListener('click', async () => {
+            const loader = document.getElementById('chart-loader');
+            const icon = btnForceSync.querySelector('i');
+            
+            btnForceSync.disabled = true;
+            icon.classList.add('spin');
+            loader.style.display = 'flex';
+
+            try {
+                const res = await fetch('/api/run-automation', { method: 'POST' });
+                const json = await res.json();
+                
+                if(json.success && json.db.historical_trends) {
+                    renderChart(json.db.historical_trends);
+                    document.getElementById('db-last-run').innerText = new Date().toLocaleString('pt-BR');
+                } else if (json.error) {
+                    alert("Erro na Sincronização: " + json.error);
+                }
+            } catch (err) {
+                alert("Falha de rede na sincronização.");
+            } finally {
+                btnForceSync.disabled = false;
+                icon.classList.remove('spin');
+                loader.style.display = 'none';
+            }
+        });
+    }
+
     // Iniciar
     fetchDashboardData();
+    loadTrends();
     
     // Auto Update a cada 30 minutos
-    setInterval(fetchDashboardData, 1800000);
+    setInterval(() => {
+        fetchDashboardData();
+        loadTrends();
+    }, 1800000);
 });

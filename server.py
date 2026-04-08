@@ -13,15 +13,48 @@ except ImportError:
     HAS_GEMINI = False
 
 import os
+import datetime
 
 PORT = int(os.environ.get("PORT", 8000))
+DB_FILE = "monitor_db.json"
+
+def get_db():
+    if not os.path.exists(DB_FILE):
+        # Seed inicial
+        initial = {
+            "historical_trends": [
+                {"date": "2026-04-01", "sentiment": {"positivos": 40, "neutros": 30, "negativos": 30}},
+                {"date": "2026-04-02", "sentiment": {"positivos": 45, "neutros": 35, "negativos": 20}},
+                {"date": "2026-04-03", "sentiment": {"positivos": 50, "neutros": 30, "negativos": 20}},
+                {"date": "2026-04-04", "sentiment": {"positivos": 40, "neutros": 40, "negativos": 20}}
+            ],
+            "last_run": None
+        }
+        with open(DB_FILE, "w") as f:
+            json.dump(initial, f, indent=4)
+        return initial
+    try:
+        with open(DB_FILE, "r") as f:
+            return json.load(f)
+    except:
+        return {"historical_trends": [], "last_run": None}
+
+def save_db(data):
+    with open(DB_FILE, "w") as f:
+        json.dump(data, f, indent=4)
 
 class APIHandler(http.server.SimpleHTTPRequestHandler):
     def end_headers(self):
         self.send_header('Access-Control-Allow-Origin', '*')
         # Prevenir cache pesado no html durante o dev
         self.send_header('Cache-Control', 'no-store, no-cache, must-revalidate')
+        self.send_header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
+        self.send_header('Access-Control-Allow-Headers', 'Content-Type')
         super().end_headers()
+
+    def do_OPTIONS(self):
+        self.send_response(200)
+        self.end_headers()
 
     def do_GET(self):
         if self.path == '/api/news':
@@ -125,6 +158,12 @@ class APIHandler(http.server.SimpleHTTPRequestHandler):
             except Exception as e:
                 error = {"error": str(e)}
                 self.wfile.write(json.dumps(error).encode('utf-8'))
+        elif self.path == '/api/trends':
+            self.send_response(200)
+            self.send_header('Content-type', 'application/json')
+            self.end_headers()
+            db_data = get_db()
+            self.wfile.write(json.dumps(db_data).encode('utf-8'))
         else:
             # Servir os arquivos normais (html, css, js)
             return super().do_GET()
@@ -245,6 +284,67 @@ class APIHandler(http.server.SimpleHTTPRequestHandler):
                  community_thermometer["post_title"] = "Faltam chaves de permissão do Servidor (Apify/Gemini)."
             
             self.wfile.write(json.dumps(community_thermometer).encode('utf-8'))
+            
+        elif self.path == '/api/run-automation':
+            self.send_response(200)
+            self.send_header('Content-type', 'application/json')
+            self.end_headers()
+            
+            apify_token = os.environ.get("APIFY_API_TOKEN")
+            api_key = os.environ.get("GEMINI_API_KEY")
+            
+            if not apify_token or not HAS_GEMINI or not api_key:
+                self.wfile.write(json.dumps({"error": "Chaves não encontradas"}).encode('utf-8'))
+                return
+                
+            try:
+                from apify_client import ApifyClient
+                client = ApifyClient(apify_token)
+                genai.configure(api_key=api_key)
+                
+                # Vamos focar na hashtag raiz "#projetonatureza" para extrair a amostra pesada do dia
+                run_input = {
+                    "searchType": "hashtag",
+                    "search": "projetonatureza",
+                    "resultsType": "posts",
+                    "resultsLimit": 3
+                }
+                
+                print("⏳ Iniciando Sincronização Lote: #projetonatureza")
+                run = client.actor("apify/instagram-scraper").call(run_input=run_input)
+                
+                all_comments = []
+                for apify_item in client.dataset(run["defaultDatasetId"]).iterate_items():
+                    all_comments.extend(apify_item.get("latestComments", []))
+                    
+                comments_text = "\n".join([f"- {c.get('text', '')}" for c in all_comments])
+                
+                model = genai.GenerativeModel("gemini-2.5-flash")
+                prompt = "Aja como estatístico. Analise todos os sentimentos do lote de comentários hoje:\n"
+                prompt += comments_text + "\n"
+                prompt += 'Retorne APENAS o JSON EXATO: {"positivos": 50, "neutros": 30, "negativos": 20}'
+                
+                response = model.generate_content(prompt, generation_config={"response_mime_type": "application/json"})
+                ai_result = json.loads(response.text)
+                
+                # Gravar no DB
+                db_data = get_db()
+                hoje = datetime.datetime.now().strftime("%Y-%m-%d")
+                
+                # Substituir se a data já existir na lista
+                filtered_trends = [t for t in db_data["historical_trends"] if t["date"] != hoje]
+                filtered_trends.append({"date": hoje, "sentiment": ai_result})
+                
+                db_data["historical_trends"] = filtered_trends
+                db_data["last_run"] = datetime.datetime.now().isoformat()
+                
+                save_db(db_data)
+                self.wfile.write(json.dumps({"success": True, "db": db_data}).encode('utf-8'))
+                
+            except Exception as e:
+                print(f"Erro na Automação Diária: {e}")
+                self.wfile.write(json.dumps({"error": str(e)}).encode('utf-8'))
+                
         else:
             self.send_response(404)
             self.end_headers()
