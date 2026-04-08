@@ -162,14 +162,21 @@
                         <i class="ph-fill ph-thermometer-hot" style="color: var(--accent-orange); font-size: 2.5rem;"></i>
                         <h2 style="font-size: 1.8rem; margin: 0;">Termômetro da Comunidade</h2>
                     </div>
-                    <p style="color: var(--text-muted); margin-bottom: 30px;">Monitoramento simulado de comentários usando IA em perfis estratégicos da região.</p>
+                    <p style="color: var(--text-muted); margin-bottom: 20px;">Cole o link direto do post oficial no Instagram para analisar o sentimento orgânico do públlico alvo em tempo real através da Inteligência Artificial.</p>
+                    
+                    <div class="thermo-controls" style="display: flex; gap: 15px; margin-bottom: 35px; flex-wrap: wrap;">
+                        <input type="url" id="thermo-url-input" placeholder="Ex: https://www.instagram.com/p/DF7HLL2v0Ew/" style="flex: 1; padding: 15px 20px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.1); background: rgba(0,0,0,0.2); color: white; font-size: 1rem; min-width: 300px; outline: none;">
+                        <button id="btn-analyze-post" style="padding: 15px 30px; border-radius: 8px; background: var(--primary-green); color: black; border: none; font-weight: 600; font-size: 1rem; cursor: pointer; display: flex; align-items: center; gap: 10px; transition: transform 0.2s;">
+                            <i class="ph ph-radar"></i> Analisar Postagem
+                        </button>
+                    </div>
                     
                     <div class="thermometer-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 30px;">
                         <!-- Coluna 1: Info do Post -->
                         <div class="target-info-card" style="background: rgba(255,255,255,0.03); padding: 25px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.05); display: flex; flex-direction: column; justify-content: center;">
                             <h3 style="font-size: 0.9rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 10px;">Alvo Estratégico Monitorado</h3>
-                            <h4 id="thermo-target" style="font-size: 1.2rem; color: var(--text-main); margin-bottom: 5px;">Carregando...</h4>
-                            <p id="thermo-post" style="color: var(--text-muted); margin-bottom: 30px; font-style: italic;">"..."</p>
+                            <h4 id="thermo-target" style="font-size: 1.2rem; color: var(--text-main); margin-bottom: 5px;">Aguardando link da postagem...</h4>
+                            <p id="thermo-post" style="color: var(--text-muted); margin-bottom: 30px; font-style: italic;">"Insira a URL acima para o radar extrair as métricas"</p>
                             
                             <div style="display: flex; align-items: center; gap: 10px; background: rgba(0, 0, 0, 0.2); padding: 15px; border-radius: 8px;">
                                 <i class="ph ph-chats" style="font-size: 2rem; color: var(--primary-green);"></i>

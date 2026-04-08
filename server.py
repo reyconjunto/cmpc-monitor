@@ -59,74 +59,16 @@ class APIHandler(http.server.SimpleHTTPRequestHandler):
                             "sentiment": "neutra"
                         })
                 
-                # Integração Funcional do Termômetro da Comunidade (Apify + Gemini)
+                # Integração Funcional do Termômetro foi movida para a rota POST /api/thermometer sob demanda.
                 community_thermometer = {
-                    "target_profile": "Instagram - @cmpc_brasil",
-                    "post_title": "Buscando dados na nuvem...",
+                    "target_profile": "Aguardando link",
+                    "post_title": "Aguardando URL de Postagem...",
                     "comments_analyzed": 0,
                     "sentiment_score": {"positivos": 0, "neutros": 0, "negativos": 0},
-                    "critical_topics": ["Aguardando análise de rede..."],
-                    "positive_topics": ["Aguardando análise de rede..."]
+                    "critical_topics": ["Aguardando análise..."],
+                    "positive_topics": ["Aguardando análise..."]
                 }
                 
-                apify_token = os.environ.get("APIFY_API_TOKEN")
-                api_key = os.environ.get("GEMINI_API_KEY")
-                
-                if apify_token and HAS_GEMINI and api_key:
-                    try:
-                        from apify_client import ApifyClient
-                        client = ApifyClient(apify_token)
-                        genai.configure(api_key=api_key)
-                        
-                        run_input = {
-                            "search": "cmpc_brasil",
-                            "searchType": "user",
-                            "resultsType": "posts",
-                            "searchLimit": 1,
-                            "resultsLimit": 1
-                        }
-                        print("Iniciando captura funcional do post no Instagram (via Apify)...")
-                        run = client.actor("apify/instagram-scraper").call(run_input=run_input)
-                        
-                        target_post = None
-                        for apify_item in client.dataset(run["defaultDatasetId"]).iterate_items():
-                            target_post = apify_item
-                            break
-                            
-                        if target_post:
-                            caption = target_post.get("caption", "Post sem legenda")
-                            community_thermometer["post_title"] = (caption[:70] + "...") if len(caption) > 70 else caption
-                                
-                            comments = target_post.get("latestComments", [])
-                            community_thermometer["comments_analyzed"] = len(comments)
-                            
-                            print(f"Post encontrado! Analisando {len(comments)} comentários recentes reais com o Gemini...")
-                            comments_text = "\n".join([f"- {c.get('text', '')}" for c in comments])
-                            if not comments_text.strip():
-                                comments_text = "Nenhum comentário encontrado."
-                                
-                            # Correção de compatibilidade da bibliteca para usar o gemini pró estável
-                            model = genai.GenerativeModel("gemini-2.5-flash")
-                            prompt = "Você é um analista de crises e monitoramento social para relações públicas da CMPC.\n"
-                            prompt += f"Isto é a legenda de um post oficial da CMPC BRASIL: {caption}\n"
-                            prompt += f"Estes são os comentários reais das pessoas na postagem:\n{comments_text}\n\n"
-                            prompt += 'Analise o sentimento orgânico destes comentários e retorne APENAS um JSON válido. Exemplo de estrutura que EXIJO:\n{"positivos": 30, "neutros": 20, "negativos": 50, "critical_topics": ["tópico negativo 1", "reclamacao 2"], "positive_topics": ["elogio 1", "ponto bom"]}\n'
-                            prompt += "A soma de positivos, neutros e negativos deve ser obrigatoriamente 100. Se houver 0 comentários, diga tudo 0."
-                            
-                            response = model.generate_content(prompt, generation_config={"response_mime_type": "application/json"})
-                            import json as py_json
-                            ai_result = py_json.loads(response.text)
-                            
-                            community_thermometer["sentiment_score"]["positivos"] = ai_result.get("positivos", 0)
-                            community_thermometer["sentiment_score"]["neutros"] = ai_result.get("neutros", 0)
-                            community_thermometer["sentiment_score"]["negativos"] = ai_result.get("negativos", 0)
-                            community_thermometer["critical_topics"] = ai_result.get("critical_topics", ["Sem focos críticos."])
-                            community_thermometer["positive_topics"] = ai_result.get("positive_topics", ["Sem focos positivos."])
-                            
-                            print("Análise funcional dos painéis finalizada!")
-                    except Exception as err:
-                        print(f"Erro no processamento funcional do termômetro: {err}")
-                        community_thermometer["post_title"] = f"Aviso Técnico: {err}"
                 
                 ai_summary = "A maioria das menções recentes destaca os investimentos bilionários e a geração de empregos com o 'Projeto Natureza' em Barra do Ribeiro. No entanto, o cruzamento de menções no X e Instagram revela cobranças pontuais sobre transparência ambiental, o que requer monitoramento ativo."
                 api_key = os.environ.get("GEMINI_API_KEY")
@@ -186,6 +128,100 @@ class APIHandler(http.server.SimpleHTTPRequestHandler):
         else:
             # Servir os arquivos normais (html, css, js)
             return super().do_GET()
+
+    def do_POST(self):
+        if self.path == '/api/thermometer':
+            content_length = int(self.headers['Content-Length'])
+            post_data = self.rfile.read(content_length)
+            data = json.loads(post_data.decode('utf-8'))
+            target_url = data.get("url", "")
+            
+            self.send_response(200)
+            self.send_header('Content-type', 'application/json')
+            self.end_headers()
+            
+            # Setup inicial do payload de resposta
+            community_thermometer = {
+                "target_profile": "Instagram",
+                "post_title": "Buscando dados no post selecionado...",
+                "comments_analyzed": 0,
+                "sentiment_score": {"positivos": 0, "neutros": 0, "negativos": 0},
+                "critical_topics": ["Sem dados críticos ou aguardando."],
+                "positive_topics": ["Sem destaques ou aguardando."]
+            }
+            
+            if not target_url:
+                community_thermometer["post_title"] = "Erro: URL não fornecida."
+                self.wfile.write(json.dumps(community_thermometer).encode('utf-8'))
+                return
+                
+            apify_token = os.environ.get("APIFY_API_TOKEN")
+            api_key = os.environ.get("GEMINI_API_KEY")
+            
+            if apify_token and HAS_GEMINI and api_key:
+                try:
+                    from apify_client import ApifyClient
+                    client = ApifyClient(apify_token)
+                    genai.configure(api_key=api_key)
+                    
+                    # Mudando de pesquisa de usuário para link direto (On-Demand)
+                    run_input = {
+                        "directUrls": [target_url],
+                        "resultsType": "details"
+                    }
+                    print(f"Buscando URL específica via Apify: {target_url}")
+                    run = client.actor("apify/instagram-scraper").call(run_input=run_input)
+                    
+                    target_post = None
+                    for apify_item in client.dataset(run["defaultDatasetId"]).iterate_items():
+                        target_post = apify_item
+                        break
+                        
+                    if target_post:
+                        caption = target_post.get("caption", "Post sem legenda")
+                        community_thermometer["post_title"] = (caption[:70] + "...") if len(caption) > 70 else caption
+                        
+                        # Tentar puxar o dono do post se existir na estrutura
+                        owner = target_post.get("ownerUsername", "")
+                        if owner:
+                            community_thermometer["target_profile"] = f"Instagram - @{owner}"
+                            
+                        comments = target_post.get("latestComments", [])
+                        community_thermometer["comments_analyzed"] = len(comments)
+                        
+                        print(f"Post {target_url} lido! Traduzindo {len(comments)} comentários com IA...")
+                        comments_text = "\n".join([f"- {c.get('text', '')}" for c in comments])
+                        if not comments_text.strip():
+                            comments_text = "Nenhum comentário encontrado para esta publicação ou postagem fechada."
+                            
+                        model = genai.GenerativeModel("gemini-2.5-flash")
+                        prompt = "Você atua como um analista de dados e monitoramento de mídias.\n"
+                        prompt += f"Resumo do Post Principal do Instagram: {caption}\n"
+                        prompt += f"Comentários da publicação:\n{comments_text}\n\n"
+                        prompt += 'Analise o sentimento desta amostragem de comentários e retorne OBRIGATORIAMENTE um JSON. Estrutura final estrita:\n{"positivos": número inteiro, "neutros": número inteiro, "negativos": número inteiro, "critical_topics": ["foco negativo 1"], "positive_topics": ["foco positivo 1"]}\n'
+                        prompt += "A soma de positivos, neutros e negativos DEVE ser 100."
+                        
+                        response = model.generate_content(prompt, generation_config={"response_mime_type": "application/json"})
+                        ai_result = json.loads(response.text)
+                        
+                        community_thermometer["sentiment_score"]["positivos"] = ai_result.get("positivos", 0)
+                        community_thermometer["sentiment_score"]["neutros"] = ai_result.get("neutros", 0)
+                        community_thermometer["sentiment_score"]["negativos"] = ai_result.get("negativos", 0)
+                        community_thermometer["critical_topics"] = ai_result.get("critical_topics", ["Sem problemas identificados."])
+                        community_thermometer["positive_topics"] = ai_result.get("positive_topics", ["Nenhum elogio claro detectado."])
+                        
+                    else:
+                        community_thermometer["post_title"] = "Aviso: Post não encontrado ou restrito."
+                except Exception as err:
+                    print(f"Erro no processamento da API de Termômetro: {err}")
+                    community_thermometer["post_title"] = f"Erro no serviço: {err}"
+            else:
+                 community_thermometer["post_title"] = "Faltam chaves de permissão do Servidor (Apify/Gemini)."
+            
+            self.wfile.write(json.dumps(community_thermometer).encode('utf-8'))
+        else:
+            self.send_response(404)
+            self.end_headers()
 
 if __name__ == "__main__":
     Handler = APIHandler

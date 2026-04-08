@@ -205,6 +205,98 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
+    // Análise On-Demand do Termômetro (Nova Funcionalidade)
+    const btnAnalyze = document.getElementById('btn-analyze-post');
+    const inputUrl = document.getElementById('thermo-url-input');
+
+    if(btnAnalyze && inputUrl) {
+        btnAnalyze.addEventListener('click', async () => {
+            const url = inputUrl.value.trim();
+            if(!url) {
+                alert("Por favor, cole o link do post do Instagram primeiro.");
+                return;
+            }
+
+            // UI Loading state para o termômetro
+            const elTarget = document.getElementById('thermo-target');
+            const elPost = document.getElementById('thermo-post');
+            const icon = btnAnalyze.querySelector('i');
+            
+            btnAnalyze.disabled = true;
+            btnAnalyze.style.opacity = '0.7';
+            icon.classList.remove('ph-radar');
+            icon.classList.add('ph-spinner-gap', 'spin');
+            
+            if (elTarget) elTarget.innerHTML = `<span style="color: var(--accent-orange)"><i class="ph ph-spinner-gap spin"></i> Rastreador Apify Acionado...</span>`;
+            if (elPost) elPost.innerText = `"Puxando dados e aquecendo turbinas do Gemini IA... Aguarde (aprox. 30s)!"`;
+            
+            document.getElementById('thermo-pos-bar').style.width = '0%';
+            document.getElementById('thermo-neu-bar').style.width = '0%';
+            document.getElementById('thermo-neg-bar').style.width = '0%';
+            document.getElementById('thermo-comments-count').innerText = "0";
+
+            try {
+                const response = await fetch('/api/thermometer', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ url: url })
+                });
+
+                const thermo = await response.json();
+
+                // Re-renderizar o bloco com os dados reais
+                if (elTarget) elTarget.innerText = thermo.target_profile;
+                if (elPost) elPost.innerText = `"${thermo.post_title}"`;
+                
+                const elComments = document.getElementById('thermo-comments-count');
+                if (elComments && thermo.comments_analyzed !== undefined) {
+                    animateValue(elComments, 0, thermo.comments_analyzed, 1500);
+                }
+                
+                // Animar Barras
+                setTimeout(() => {
+                    const posBar = document.getElementById('thermo-pos-bar');
+                    const neuBar = document.getElementById('thermo-neu-bar');
+                    const negBar = document.getElementById('thermo-neg-bar');
+                    
+                    if (posBar && thermo.sentiment_score) {
+                        posBar.style.width = thermo.sentiment_score.positivos + '%';
+                        document.getElementById('thermo-pos-val').innerText = thermo.sentiment_score.positivos + '%';
+                    }
+                    if (neuBar && thermo.sentiment_score) {
+                        neuBar.style.width = thermo.sentiment_score.neutros + '%';
+                        document.getElementById('thermo-neu-val').innerText = thermo.sentiment_score.neutros + '%';
+                    }
+                    if (negBar && thermo.sentiment_score) {
+                        negBar.style.width = thermo.sentiment_score.negativos + '%';
+                        document.getElementById('thermo-neg-val').innerText = thermo.sentiment_score.negativos + '%';
+                    }
+                }, 100);
+
+                // Preencher Tópicos
+                const crisesList = document.getElementById('thermo-crises');
+                const posList = document.getElementById('thermo-positives');
+                
+                if (crisesList && thermo.critical_topics) {
+                    crisesList.innerHTML = thermo.critical_topics.map(t => `<li>${t}</li>`).join('');
+                }
+                if (posList && thermo.positive_topics) {
+                    posList.innerHTML = thermo.positive_topics.map(t => `<li>${t}</li>`).join('');
+                }
+
+            } catch (err) {
+                console.error(err);
+                if (elTarget) elTarget.innerHTML = `<span style="color: #f44336">Erro na Análise</span>`;
+                if (elPost) elPost.innerText = `"Não foi possível ler este URL. O servidor Python local está rodando?"`;
+            } finally {
+                btnAnalyze.disabled = false;
+                btnAnalyze.style.opacity = '1';
+                icon.classList.remove('ph-spinner-gap', 'spin');
+                icon.classList.add('ph-radar');
+            }
+        });
+    }
+
     // Iniciar
     fetchDashboardData();
     
