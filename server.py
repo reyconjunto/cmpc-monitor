@@ -164,40 +164,66 @@ class APIHandler(http.server.SimpleHTTPRequestHandler):
                     client = ApifyClient(apify_token)
                     genai.configure(api_key=api_key)
                     
-                    # Mudando de pesquisa de usuário para link direto (On-Demand)
-                    run_input = {
-                        "directUrls": [target_url],
-                        "resultsType": "details"
-                    }
-                    print(f"Buscando URL específica via Apify: {target_url}")
+                    is_hashtag = not target_url.startswith("http")
+                    
+                    if is_hashtag:
+                        hashtag_clean = target_url.replace("#", "").strip()
+                        run_input = {
+                            "searchType": "hashtag",
+                            "search": hashtag_clean,
+                            "resultsType": "posts",
+                            "resultsLimit": 3
+                        }
+                        community_thermometer["target_profile"] = f"Tag Global: #{hashtag_clean}"
+                        print(f"Buscando Hashtag em Lote via Apify: #{hashtag_clean}")
+                    else:
+                        run_input = {
+                            "directUrls": [target_url],
+                            "resultsType": "details"
+                        }
+                        print(f"Buscando URL específica via Apify: {target_url}")
+                        
                     run = client.actor("apify/instagram-scraper").call(run_input=run_input)
                     
-                    target_post = None
+                    all_comments = []
+                    captions_seen = []
+                    posts_processed = 0
+                    
                     for apify_item in client.dataset(run["defaultDatasetId"]).iterate_items():
-                        target_post = apify_item
-                        break
+                        posts_processed += 1
+                        cap = apify_item.get("caption", "")
+                        if cap: captions_seen.append(cap[:100] + "...")
                         
-                    if target_post:
-                        caption = target_post.get("caption", "Post sem legenda")
-                        community_thermometer["post_title"] = (caption[:70] + "...") if len(caption) > 70 else caption
+                        comments = apify_item.get("latestComments", [])
+                        all_comments.extend(comments)
                         
-                        # Tentar puxar o dono do post se existir na estrutura
-                        owner = target_post.get("ownerUsername", "")
-                        if owner:
-                            community_thermometer["target_profile"] = f"Instagram - @{owner}"
+                        if not is_hashtag:
+                            owner = apify_item.get("ownerUsername", "")
+                            if owner:
+                                community_thermometer["target_profile"] = f"Instagram - @{owner}"
+                            break
+                        
+                    if posts_processed > 0:
+                        if is_hashtag:
+                            community_thermometer["post_title"] = f"Lote de {posts_processed} posts recentes analisados simultaneamente."
+                        else:
+                            community_thermometer["post_title"] = captions_seen[0] if captions_seen else "Post sem legenda"
                             
-                        comments = target_post.get("latestComments", [])
-                        community_thermometer["comments_analyzed"] = len(comments)
+                        community_thermometer["comments_analyzed"] = len(all_comments)
                         
-                        print(f"Post {target_url} lido! Traduzindo {len(comments)} comentários com IA...")
-                        comments_text = "\n".join([f"- {c.get('text', '')}" for c in comments])
+                        print(f"Dados extraídos! Traduzindo {len(all_comments)} comentários acumulados com IA...")
+                        comments_text = "\n".join([f"- {c.get('text', '')}" for c in all_comments])
                         if not comments_text.strip():
-                            comments_text = "Nenhum comentário encontrado para esta publicação ou postagem fechada."
+                            comments_text = "Nenhum comentário encontrado neste conjunto."
                             
                         model = genai.GenerativeModel("gemini-2.5-flash")
                         prompt = "Você atua como um analista de dados e monitoramento de mídias.\n"
-                        prompt += f"Resumo do Post Principal do Instagram: {caption}\n"
-                        prompt += f"Comentários da publicação:\n{comments_text}\n\n"
+                        if is_hashtag:
+                            prompt += f"Isto é um monitoramento AMPLO de {posts_processed} posts recentes sobre a hashtag. Resumo das legendas capturadas: {' | '.join(captions_seen)}\n"
+                        else:
+                            prompt += f"Resumo do Post Principal do Instagram: {captions_seen[0] if captions_seen else ''}\n"
+                            
+                        prompt += f"Comentários agregados do público:\n{comments_text}\n\n"
                         prompt += 'Analise o sentimento desta amostragem de comentários e retorne OBRIGATORIAMENTE um JSON. Estrutura final estrita:\n{"positivos": número inteiro, "neutros": número inteiro, "negativos": número inteiro, "critical_topics": ["foco negativo 1"], "positive_topics": ["foco positivo 1"]}\n'
                         prompt += "A soma de positivos, neutros e negativos DEVE ser 100."
                         
@@ -211,7 +237,7 @@ class APIHandler(http.server.SimpleHTTPRequestHandler):
                         community_thermometer["positive_topics"] = ai_result.get("positive_topics", ["Nenhum elogio claro detectado."])
                         
                     else:
-                        community_thermometer["post_title"] = "Aviso: Post não encontrado ou restrito."
+                        community_thermometer["post_title"] = "Aviso: Nenhum post encontrado para este alvo."
                 except Exception as err:
                     print(f"Erro no processamento da API de Termômetro: {err}")
                     community_thermometer["post_title"] = f"Erro no serviço: {err}"

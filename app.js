@@ -222,13 +222,23 @@ document.addEventListener('DOMContentLoaded', () => {
             const elPost = document.getElementById('thermo-post');
             const icon = btnAnalyze.querySelector('i');
             
+            const isHashtag = !url.startsWith("http");
+            
             btnAnalyze.disabled = true;
             btnAnalyze.style.opacity = '0.7';
             icon.classList.remove('ph-radar');
             icon.classList.add('ph-spinner-gap', 'spin');
             
-            if (elTarget) elTarget.innerHTML = `<span style="color: var(--accent-orange)"><i class="ph ph-spinner-gap spin"></i> Rastreador Apify Acionado...</span>`;
-            if (elPost) elPost.innerText = `"Puxando dados e aquecendo turbinas do Gemini IA... Aguarde (aprox. 30s)!"`;
+            let loadingTitle = `<span style="color: var(--accent-orange)"><i class="ph ph-spinner-gap spin"></i> Rastreador Apify Acionado...</span>`;
+            let loadingDesc = `"Puxando dados e aquecendo turbinas do Gemini IA... Aguarde (aprox. 30s)!"`;
+            
+            if (isHashtag) {
+                 loadingTitle = `<span style="color: var(--primary-green)"><i class="ph ph-hash spin"></i> Varrimento Global em Massa Localizado...</span>`;
+                 loadingDesc = `"Baixando de 3 a 5 posts de várias contas do mundo com a Tag principal e avaliando LOTE! (Pode levar até 45s)..."`;
+            }
+
+            if (elTarget) elTarget.innerHTML = loadingTitle;
+            if (elPost) elPost.innerText = loadingDesc;
             
             document.getElementById('thermo-pos-bar').style.width = '0%';
             document.getElementById('thermo-neu-bar').style.width = '0%';
