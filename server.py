@@ -59,19 +59,74 @@ class APIHandler(http.server.SimpleHTTPRequestHandler):
                             "sentiment": "neutra"
                         })
                 
-                # Simulação do Termômetro da Comunidade (Monitoramento de Posts Direcionado)
+                # Integração Funcional do Termômetro da Comunidade (Apify + Gemini)
                 community_thermometer = {
-                    "target_profile": "Instagram - Prefeitura de Barra do Ribeiro",
-                    "post_title": "Aviso sobre o avanço das obras do Projeto Natureza",
-                    "comments_analyzed": 156,
-                    "sentiment_score": {
-                        "positivos": 32,  # 32%
-                        "neutros": 18,    # 18%
-                        "negativos": 50   # 50%
-                    },
-                    "critical_topics": ["Poeira e barro nas ruas", "Tráfego intenso de caminhões"],
-                    "positive_topics": ["Abertura de vagas", "Crescimento do comércio local"]
+                    "target_profile": "Instagram - @cmpc_brasil",
+                    "post_title": "Buscando dados na nuvem...",
+                    "comments_analyzed": 0,
+                    "sentiment_score": {"positivos": 0, "neutros": 0, "negativos": 0},
+                    "critical_topics": ["Aguardando análise de rede..."],
+                    "positive_topics": ["Aguardando análise de rede..."]
                 }
+                
+                apify_token = os.environ.get("APIFY_API_TOKEN")
+                api_key = os.environ.get("GEMINI_API_KEY")
+                
+                if apify_token and HAS_GEMINI and api_key:
+                    try:
+                        from apify_client import ApifyClient
+                        client = ApifyClient(apify_token)
+                        genai.configure(api_key=api_key)
+                        
+                        run_input = {
+                            "search": "cmpc_brasil",
+                            "searchType": "user",
+                            "resultsType": "posts",
+                            "searchLimit": 1,
+                            "resultsLimit": 1
+                        }
+                        print("Iniciando captura funcional do post no Instagram (via Apify)...")
+                        run = client.actor("apify/instagram-scraper").call(run_input=run_input)
+                        
+                        target_post = None
+                        for apify_item in client.dataset(run["defaultDatasetId"]).iterate_items():
+                            target_post = apify_item
+                            break
+                            
+                        if target_post:
+                            caption = target_post.get("caption", "Post sem legenda")
+                            community_thermometer["post_title"] = (caption[:70] + "...") if len(caption) > 70 else caption
+                                
+                            comments = target_post.get("latestComments", [])
+                            community_thermometer["comments_analyzed"] = len(comments)
+                            
+                            print(f"Post encontrado! Analisando {len(comments)} comentários recentes reais com o Gemini...")
+                            comments_text = "\n".join([f"- {c.get('text', '')}" for c in comments])
+                            if not comments_text.strip():
+                                comments_text = "Nenhum comentário encontrado."
+                                
+                            # Correção de compatibilidade da bibliteca para usar o gemini pró estável
+                            model = genai.GenerativeModel("gemini-2.5-flash")
+                            prompt = "Você é um analista de crises e monitoramento social para relações públicas da CMPC.\n"
+                            prompt += f"Isto é a legenda de um post oficial da CMPC BRASIL: {caption}\n"
+                            prompt += f"Estes são os comentários reais das pessoas na postagem:\n{comments_text}\n\n"
+                            prompt += 'Analise o sentimento orgânico destes comentários e retorne APENAS um JSON válido. Exemplo de estrutura que EXIJO:\n{"positivos": 30, "neutros": 20, "negativos": 50, "critical_topics": ["tópico negativo 1", "reclamacao 2"], "positive_topics": ["elogio 1", "ponto bom"]}\n'
+                            prompt += "A soma de positivos, neutros e negativos deve ser obrigatoriamente 100. Se houver 0 comentários, diga tudo 0."
+                            
+                            response = model.generate_content(prompt, generation_config={"response_mime_type": "application/json"})
+                            import json as py_json
+                            ai_result = py_json.loads(response.text)
+                            
+                            community_thermometer["sentiment_score"]["positivos"] = ai_result.get("positivos", 0)
+                            community_thermometer["sentiment_score"]["neutros"] = ai_result.get("neutros", 0)
+                            community_thermometer["sentiment_score"]["negativos"] = ai_result.get("negativos", 0)
+                            community_thermometer["critical_topics"] = ai_result.get("critical_topics", ["Sem focos críticos."])
+                            community_thermometer["positive_topics"] = ai_result.get("positive_topics", ["Sem focos positivos."])
+                            
+                            print("Análise funcional dos painéis finalizada!")
+                    except Exception as err:
+                        print(f"Erro no processamento funcional do termômetro: {err}")
+                        community_thermometer["post_title"] = f"Aviso Técnico: {err}"
                 
                 ai_summary = "A maioria das menções recentes destaca os investimentos bilionários e a geração de empregos com o 'Projeto Natureza' em Barra do Ribeiro. No entanto, o cruzamento de menções no X e Instagram revela cobranças pontuais sobre transparência ambiental, o que requer monitoramento ativo."
                 api_key = os.environ.get("GEMINI_API_KEY")
@@ -79,7 +134,7 @@ class APIHandler(http.server.SimpleHTTPRequestHandler):
                 if HAS_GEMINI and api_key and len(items) > 0:
                     try:
                         genai.configure(api_key=api_key)
-                        model = genai.GenerativeModel("gemini-1.5-flash")
+                        model = genai.GenerativeModel("gemini-2.5-flash")
                         prompt = "Você é um analista de relações públicas. Analise as manchetes abaixo sobre a CMPC e o projeto de celulose 'Projeto Natureza'.\n"
                         prompt += "Retorne APENAS um JSON válido com esta estrutura exata:\n"
                         prompt += '{"ai_summary": "resumo geral de 1 frase", "sentiments": ["positiva" ou "negativa" ou "neutra"]}\n\n'
