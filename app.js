@@ -145,7 +145,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
             // Renderizar Lista de Notícias
             if(data.latest_news && data.latest_news.length > 0) {
-                elNewsContainer.innerHTML = data.latest_news.map((news, index) => createNewsCard(news, index)).join('');
+                const sortedNews = data.latest_news.sort((a, b) => {
+                    const dateA = a.pubDate ? new Date(a.pubDate) : new Date(0);
+                    const dateB = b.pubDate ? new Date(b.pubDate) : new Date(0);
+                    return dateB - dateA;
+                });
+                elNewsContainer.innerHTML = sortedNews.map((news, index) => createNewsCard(news, index)).join('');
             } else {
                 elNewsContainer.innerHTML = `
                     <div class="loading-state">
