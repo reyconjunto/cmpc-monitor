@@ -67,53 +67,54 @@ class APIHandler(http.server.SimpleHTTPRequestHandler):
             encoded_query = urllib.parse.quote(search_query)
             rss_url = f"https://news.google.com/rss/search?q={encoded_query}&hl=pt-BR&gl=BR&ceid=BR:pt-419"
             
-            items = []
             try:
-                headers = {
-                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36',
-                    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-                    'Accept-Language': 'pt-BR,pt;q=0.9,en-US;q=0.8,en;q=0.7'
-                }
-                req = urllib.request.Request(rss_url, headers=headers)
-                with urllib.request.urlopen(req) as response:
-                    xml_content = response.read()
-                
-                root = ET.fromstring(xml_content)
-                channel = root.find('channel')
-                
-                if channel is not None:
-                    # Pegar as 30 notícias mais recentes
-                    for item in channel.findall('item')[:30]:
-                        title = item.find('title').text if item.find('title') is not None else ''
-                        link = item.find('link').text if item.find('link') is not None else ''
-                        pubDate = item.find('pubDate').text if item.find('pubDate') is not None else ''
-                        source = item.find('source').text if item.find('source') is not None else 'Google News'
-                        
-                        items.append({
-                            "title": title,
-                            "link": link,
-                            "pubDate": pubDate,
-                            "source": source,
-                            "sentiment": "neutra"
-                        })
-            except Exception as fetch_err:
-                print(f"Erro ao buscar RSS do Google News: {fetch_err}")
-                items = [
-                    {
-                        "title": "CMPC avança com Projeto Natureza em Barra do Ribeiro",
-                        "link": "#",
-                        "pubDate": datetime.datetime.now().strftime("%a, %d %b %Y %H:%M:%S GMT"),
-                        "source": "Monitoramento Interno",
-                        "sentiment": "positiva"
-                    },
-                    {
-                        "title": "Discussões sobre impacto da celulose na região metropolitana",
-                        "link": "#",
-                        "pubDate": datetime.datetime.now().strftime("%a, %d %b %Y %H:%M:%S GMT"),
-                        "source": "Monitoramento Interno",
-                        "sentiment": "neutra"
+                items = []
+                try:
+                    headers = {
+                        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36',
+                        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+                        'Accept-Language': 'pt-BR,pt;q=0.9,en-US;q=0.8,en;q=0.7'
                     }
-                ]
+                    req = urllib.request.Request(rss_url, headers=headers)
+                    with urllib.request.urlopen(req) as response:
+                        xml_content = response.read()
+                    
+                    root = ET.fromstring(xml_content)
+                    channel = root.find('channel')
+                    
+                    if channel is not None:
+                        # Pegar as 30 notícias mais recentes
+                        for item in channel.findall('item')[:30]:
+                            title = item.find('title').text if item.find('title') is not None else ''
+                            link = item.find('link').text if item.find('link') is not None else ''
+                            pubDate = item.find('pubDate').text if item.find('pubDate') is not None else ''
+                            source = item.find('source').text if item.find('source') is not None else 'Google News'
+                            
+                            items.append({
+                                "title": title,
+                                "link": link,
+                                "pubDate": pubDate,
+                                "source": source,
+                                "sentiment": "neutra"
+                            })
+                except Exception as fetch_err:
+                    print(f"Erro ao buscar RSS do Google News: {fetch_err}")
+                    items = [
+                        {
+                            "title": "CMPC avança com Projeto Natureza em Barra do Ribeiro",
+                            "link": "#",
+                            "pubDate": datetime.datetime.now().strftime("%a, %d %b %Y %H:%M:%S GMT"),
+                            "source": "Monitoramento Interno",
+                            "sentiment": "positiva"
+                        },
+                        {
+                            "title": "Discussões sobre impacto da celulose na região metropolitana",
+                            "link": "#",
+                            "pubDate": datetime.datetime.now().strftime("%a, %d %b %Y %H:%M:%S GMT"),
+                            "source": "Monitoramento Interno",
+                            "sentiment": "neutra"
+                        }
+                    ]
                 
                 # Integração Funcional do Termômetro foi movida para a rota POST /api/thermometer sob demanda.
                 community_thermometer = {
@@ -124,7 +125,6 @@ class APIHandler(http.server.SimpleHTTPRequestHandler):
                     "critical_topics": ["Aguardando análise..."],
                     "positive_topics": ["Aguardando análise..."]
                 }
-                
                 
                 ai_summary = "A maioria das menções recentes destaca os investimentos bilionários e a geração de empregos com o 'Projeto Natureza' em Barra do Ribeiro. No entanto, o cruzamento de menções no X e Instagram revela cobranças pontuais sobre transparência ambiental, o que requer monitoramento ativo."
                 api_key = os.environ.get("GEMINI_API_KEY")
