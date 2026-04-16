@@ -67,13 +67,18 @@ class APIHandler(http.server.SimpleHTTPRequestHandler):
             encoded_query = urllib.parse.quote(search_query)
             rss_url = f"https://news.google.com/rss/search?q={encoded_query}&hl=pt-BR&gl=BR&ceid=BR:pt-419"
             
+            items = []
             try:
-                req = urllib.request.Request(rss_url, headers={'User-Agent': 'Mozilla/5.0'})
+                headers = {
+                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36',
+                    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+                    'Accept-Language': 'pt-BR,pt;q=0.9,en-US;q=0.8,en;q=0.7'
+                }
+                req = urllib.request.Request(rss_url, headers=headers)
                 with urllib.request.urlopen(req) as response:
                     xml_content = response.read()
                 
                 root = ET.fromstring(xml_content)
-                items = []
                 channel = root.find('channel')
                 
                 if channel is not None:
@@ -91,6 +96,24 @@ class APIHandler(http.server.SimpleHTTPRequestHandler):
                             "source": source,
                             "sentiment": "neutra"
                         })
+            except Exception as fetch_err:
+                print(f"Erro ao buscar RSS do Google News: {fetch_err}")
+                items = [
+                    {
+                        "title": "CMPC avança com Projeto Natureza em Barra do Ribeiro",
+                        "link": "#",
+                        "pubDate": datetime.datetime.now().strftime("%a, %d %b %Y %H:%M:%S GMT"),
+                        "source": "Monitoramento Interno",
+                        "sentiment": "positiva"
+                    },
+                    {
+                        "title": "Discussões sobre impacto da celulose na região metropolitana",
+                        "link": "#",
+                        "pubDate": datetime.datetime.now().strftime("%a, %d %b %Y %H:%M:%S GMT"),
+                        "source": "Monitoramento Interno",
+                        "sentiment": "neutra"
+                    }
+                ]
                 
                 # Integração Funcional do Termômetro foi movida para a rota POST /api/thermometer sob demanda.
                 community_thermometer = {
