@@ -37,7 +37,7 @@ def get_db():
         with open(DB_FILE, "r") as f:
             return json.load(f)
     except:
-        return {"historical_trends": [], "last_run": None}
+        return {"historical_trends": [], "last_run": None, "news_history": []}
 
 def save_db(data):
     with open(DB_FILE, "w") as f:
@@ -69,6 +69,9 @@ class APIHandler(http.server.SimpleHTTPRequestHandler):
             
             try:
                 items = []
+                db_data = get_db()
+                is_from_cache = False
+                
                 try:
                     headers = {
                         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36',
@@ -99,22 +102,26 @@ class APIHandler(http.server.SimpleHTTPRequestHandler):
                             })
                 except Exception as fetch_err:
                     print(f"Erro ao buscar RSS do Google News: {fetch_err}")
-                    items = [
-                        {
-                            "title": "CMPC avança com Projeto Natureza em Barra do Ribeiro",
-                            "link": "#",
-                            "pubDate": datetime.datetime.now().strftime("%a, %d %b %Y %H:%M:%S GMT"),
-                            "source": "Monitoramento Interno",
-                            "sentiment": "positiva"
-                        },
-                        {
-                            "title": "Discussões sobre impacto da celulose na região metropolitana",
-                            "link": "#",
-                            "pubDate": datetime.datetime.now().strftime("%a, %d %b %Y %H:%M:%S GMT"),
-                            "source": "Monitoramento Interno",
-                            "sentiment": "neutra"
-                        }
-                    ]
+                    items = db_data.get("news_history", [])
+                    is_from_cache = True
+                    
+                    if not items:
+                        items = [
+                            {
+                                "title": "CMPC avança com Projeto Natureza em Barra do Ribeiro",
+                                "link": "#",
+                                "pubDate": datetime.datetime.now().strftime("%a, %d %b %Y %H:%M:%S GMT"),
+                                "source": "Monitoramento Interno",
+                                "sentiment": "positiva"
+                            },
+                            {
+                                "title": "Discussões sobre impacto da celulose na região metropolitana",
+                                "link": "#",
+                                "pubDate": datetime.datetime.now().strftime("%a, %d %b %Y %H:%M:%S GMT"),
+                                "source": "Monitoramento Interno",
+                                "sentiment": "neutra"
+                            }
+                        ]
                 
                 # Integração Funcional do Termômetro foi movida para a rota POST /api/thermometer sob demanda.
                 community_thermometer = {
@@ -129,43 +136,47 @@ class APIHandler(http.server.SimpleHTTPRequestHandler):
                 ai_summary = "A maioria das menções recentes destaca os investimentos bilionários e a geração de empregos com o 'Projeto Natureza' em Barra do Ribeiro. No entanto, o cruzamento de menções no X e Instagram revela cobranças pontuais sobre transparência ambiental, o que requer monitoramento ativo."
                 api_key = os.environ.get("GEMINI_API_KEY")
                 
-                if HAS_GEMINI and api_key and len(items) > 0:
-                    try:
-                        genai.configure(api_key=api_key)
-                        model = genai.GenerativeModel("gemini-2.5-flash")
-                        prompt = "Você é um analista de relações públicas. Analise as manchetes abaixo sobre a CMPC e o projeto de celulose 'Projeto Natureza'.\n"
-                        prompt += "Retorne APENAS um JSON válido com esta estrutura exata:\n"
-                        prompt += '{"ai_summary": "resumo geral de 1 frase", "sentiments": ["positiva" ou "negativa" ou "neutra"]}\n\n'
-                        prompt += "Atenção: 'sentiments' deve ser um array contendo strings com a classificação de cada manchete, na mesma ordem.\n"
-                        prompt += "Manchetes:\n"
-                        for i, item in enumerate(items):
-                            prompt += f"{i}. {item['title']}\n"
+                if not is_from_cache:
+                    if HAS_GEMINI and api_key and len(items) > 0:
+                        try:
+                            genai.configure(api_key=api_key)
+                            model = genai.GenerativeModel("gemini-2.5-flash")
+                            prompt = "Você é um analista de relações públicas. Analise as manchetes abaixo sobre a CMPC e o projeto de celulose 'Projeto Natureza'.\n"
+                            prompt += "Retorne APENAS um JSON válido com esta estrutura exata:\n"
+                            prompt += '{"ai_summary": "resumo geral de 1 frase", "sentiments": ["positiva" ou "negativa" ou "neutra"]}\n\n'
+                            prompt += "Atenção: 'sentiments' deve ser um array contendo strings com a classificação de cada manchete, na mesma ordem.\n"
+                            prompt += "Manchetes:\n"
+                            for i, item in enumerate(items):
+                                prompt += f"{i}. {item['title']}\n"
+                                
+                            response = model.generate_content(prompt, generation_config={"response_mime_type": "application/json"})
+                            result = json.loads(response.text)
                             
-                        response = model.generate_content(prompt, generation_config={"response_mime_type": "application/json"})
-                        result = json.loads(response.text)
-                        
-                        ai_summary = result.get("ai_summary", ai_summary)
-                        sentiments = result.get("sentiments", [])
-                        
-                        for i, item in enumerate(items):
-                            if i < len(sentiments):
-                                item["sentiment"] = sentiments[i]
-                    except Exception as e:
-                        print(f"Erro no processamento da IA: {e}")
-                        # Fallback simples
+                            ai_summary = result.get("ai_summary", ai_summary)
+                            db_data["latest_ai_summary"] = ai_summary
+                            sentiments = result.get("sentiments", [])
+                            
+                            for i, item in enumerate(items):
+                                if i < len(sentiments):
+                                    item["sentiment"] = sentiments[i]
+                        except Exception as e:
+                            print(f"Erro no processamento da IA: {e}")
+                            # Fallback simples
+                            for item in items:
+                                title_lower = item["title"].lower()
+                                if any(word in title_lower for word in ["projeto", "investimento", "sustentabilidade", "empregos"]):
+                                    item["sentiment"] = "positiva"
+                                elif any(word in title_lower for word in ["impacto", "problema", "protesto", "poluição", "crise"]):
+                                    item["sentiment"] = "negativa"
+                    else:
                         for item in items:
                             title_lower = item["title"].lower()
-                            if any(word in title_lower for word in ["projeto", "investimento", "sustentabilidade", "empregos"]):
+                            if any(word in title_lower for word in ["projeto natureza", "investimento", "sustentabilidade", "desenvolvimento", "crescimento", "empregos"]):
                                 item["sentiment"] = "positiva"
-                            elif any(word in title_lower for word in ["impacto", "problema", "protesto", "poluição", "crise"]):
+                            elif any(word in title_lower for word in ["impacto", "problema", "protesto", "poluição", "crise", "denúncia", "embargo"]):
                                 item["sentiment"] = "negativa"
                 else:
-                    for item in items:
-                        title_lower = item["title"].lower()
-                        if any(word in title_lower for word in ["projeto natureza", "investimento", "sustentabilidade", "desenvolvimento", "crescimento", "empregos"]):
-                            item["sentiment"] = "positiva"
-                        elif any(word in title_lower for word in ["impacto", "problema", "protesto", "poluição", "crise", "denúncia", "embargo"]):
-                            item["sentiment"] = "negativa"
+                    ai_summary = db_data.get("latest_ai_summary", ai_summary)
                 
                 # Mock de volume global considerando multiplicador hipotético para demonstrar um dashboard com alto volume
                 stats = {
@@ -176,6 +187,11 @@ class APIHandler(http.server.SimpleHTTPRequestHandler):
                     "ai_summary": ai_summary,
                     "community_thermometer": community_thermometer
                 }
+                
+                # Salva os itens e o resumo no db para servirem de histórico caso o feed bloqueie depois
+                if not is_from_cache and len(items) > 0 and items[0].get("link") != "#":
+                    db_data["news_history"] = items
+                    save_db(db_data)
                 
                 self.wfile.write(json.dumps(stats).encode('utf-8'))
             except Exception as e:
