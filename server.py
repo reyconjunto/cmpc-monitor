@@ -101,12 +101,34 @@ class APIHandler(http.server.SimpleHTTPRequestHandler):
                                 "sentiment": "neutra"
                             })
                 except Exception as fetch_err:
-                    print(f"Erro ao buscar RSS do Google News: {fetch_err}")
-                    items = db_data.get("news_history", [])
-                    is_from_cache = True
-                    
-                    if not items:
-                        items = [
+                    print(f"Erro ao buscar RSS direto, tentando proxy RSS2JSON: {fetch_err}")
+                    try:
+                        proxy_url = 'https://api.rss2json.com/v1/api.json?rss_url=' + urllib.parse.quote(rss_url)
+                        req_proxy = urllib.request.Request(proxy_url)
+                        with urllib.request.urlopen(req_proxy) as resp_proxy:
+                            proxy_data = json.loads(resp_proxy.read())
+                            for p_item in proxy_data.get('items', [])[:30]:
+                                title_full = p_item.get('title', '')
+                                title_parts = title_full.rsplit(" - ", 1)
+                                title = title_parts[0]
+                                source = title_parts[1] if len(title_parts) > 1 else 'Google News'
+                                link = p_item.get('link', '')
+                                pubDate = p_item.get('pubDate', '')
+                                
+                                items.append({
+                                    "title": title,
+                                    "link": link,
+                                    "pubDate": pubDate,
+                                    "source": source,
+                                    "sentiment": "neutra"
+                                })
+                    except Exception as proxy_err:
+                        print(f"Erro no proxy RSS2JSON: {proxy_err}")
+                        items = db_data.get("news_history", [])
+                        is_from_cache = True
+                        
+                        if not items:
+                            items = [
                             {
                                 "title": "CMPC avança com Projeto Natureza em Barra do Ribeiro",
                                 "link": "#",
